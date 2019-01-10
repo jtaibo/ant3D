@@ -1,11 +1,41 @@
 #include <nec2pp/c_geometry.h>
 #include <nec2pp/nec_context.h>
 
+#include <osgViewer/Viewer>
+
+#include "scenegeometry.h"
+
+
+void printNECInfo(nec_radiation_pattern *rp)
+{
+	int nth = rp->get_ntheta();
+	int nph = rp->get_nphi();
+
+	cout << endl << "Theta \tPhi \tHorizontal \tVertical \tTotal" << endl;
+	for (int j = 0; j < nph; j++) {
+		for (int i = 0; i < nth; i++) {
+			cout
+				<< rp->get_theta(i) << "  \t"
+				<< rp->get_phi(j) << "  \t"
+				<< rp->get_power_gain_horiz(i, j) << "  \t"
+				<< rp->get_power_gain_vert(i, j) << "  \t"
+				<< rp->get_power_gain(i, j) << "  \t"
+				<< rp->get_etheta_magnitude(i, j) << "  \t"
+				<< rp->get_etheta_phase(i, j) << "  \t"
+				<< rp->get_ephi_magnitude(i, j) << "  \t"
+				<< rp->get_ephi_phase(i, j)
+				<< endl;
+		}
+	}
+}
+
 
 int main(int argc, char *argv[])
 {
 	std::cout << "Antenna 3D visualizer" << std::endl;
 	std::cout << "V 0.1 - 2019 EA1JBP" << std::endl;
+
+	// NEC2++ stuff
 
 	nec_context nec;
 	nec.initialize();
@@ -28,25 +58,17 @@ int main(int argc, char *argv[])
 	// this is the first (and only) radiation pattern.
 	nec_radiation_pattern* rp = nec.get_radiation_pattern(0);
 
-	int nth = rp->get_ntheta();
-	int nph = rp->get_nphi();
+	printNECInfo(rp);
 
-	cout << endl << "Theta \tPhi \tHorizontal \tVertical \tTotal" << endl;
-	for (int j = 0; j < nph; j++) {
-		for (int i = 0; i < nth; i++) {
-			cout
-				<< rp->get_theta(i) << "  \t"
-				<< rp->get_phi(j) << "  \t"
-				<< rp->get_power_gain_horiz(i, j) << "  \t"
-				<< rp->get_power_gain_vert(i, j) << "  \t"
-				<< rp->get_power_gain(i, j) << "  \t"
-				<< rp->get_etheta_magnitude(i, j) << "  \t"
-				<< rp->get_etheta_phase(i, j) << "  \t"
-				<< rp->get_ephi_magnitude(i, j) << "  \t"
-				<< rp->get_ephi_phase(i, j)
-				<< endl;
-		}
-	}
+	// OSG stuff
 
-	return 0;
+	// ...
+	osgViewer::Viewer viewer;
+
+	osg::ref_ptr<osg::Node> scene = buildScene(geo, rp);
+	viewer.setSceneData(scene);
+
+	viewer.realize();
+
+	return viewer.run();
 }
