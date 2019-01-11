@@ -12,6 +12,7 @@ set ( LIBS
 		osg
 		osgViewer
 		osgDB
+		osgGA
 	)
 
 add_executable(${target} ${sources})

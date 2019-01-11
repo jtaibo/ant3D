@@ -2,6 +2,8 @@
 #include <nec2pp/nec_context.h>
 
 #include <osgViewer/Viewer>
+#include <osgViewer/ViewerEventHandlers>
+#include <osgGA/StateSetManipulator>
 
 #include "scenegeometry.h"
 
@@ -49,21 +51,31 @@ int main(int argc, char *argv[])
 
 	nec.gn_card(-1, 0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
 	nec.ld_card(5, 0, 0, 0, 3.72e7, 0.0, 0.0);
-	nec.pt_card(-1, 0, 0, 0);
+//	nec.pt_card(-1, 0, 0, 0);
 	nec.ex_card(EXCITATION_LINEAR, 1, 1, 0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
 	nec.fr_card(0, 2, 2400.0, 100.0);
-	nec.rp_card(0, 10, 10, 0, 5, 0, 0, 0.0, 0.0, 9.0, 9.0, 0.0, 0.0);
+//	nec.rp_card(0, 10, 10, 0, 5, 0, 0, 0.0, 0.0, 9.0, 9.0, 0.0, 0.0);
+	{
+		float delta = 1.;
+		nec.rp_card(0, 360/delta, 360/delta, 0, 5, 0, 0, 0.0, 0.0, delta, delta, 0.0, 0.0);
+	}
 
 	// now get the radiation pattern data. The result index is 0 since
 	// this is the first (and only) radiation pattern.
 	nec_radiation_pattern* rp = nec.get_radiation_pattern(0);
 
-	printNECInfo(rp);
+//	printNECInfo(rp);
 
 	// OSG stuff
 
 	// ...
 	osgViewer::Viewer viewer;
+
+	// add the state manipulator
+	viewer.addEventHandler(new osgGA::StateSetManipulator(viewer.getCamera()->getOrCreateStateSet()));
+
+	// add the stats handler
+	viewer.addEventHandler(new osgViewer::StatsHandler);
 
 	osg::ref_ptr<osg::Node> scene = buildScene(geo, rp);
 	viewer.setSceneData(scene);
