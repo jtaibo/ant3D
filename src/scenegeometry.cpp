@@ -81,7 +81,6 @@ osg::Node * SceneVisualizer::buildScene(c_geometry* geo, nec_radiation_pattern* 
 	// TO-DO: choose theta and phi values for azimuthal and elevation graphs
 	_root->addChild(buildAzimuthalGraph(90));
 	_root->addChild(buildElevationGraph(90));
-//	_root->addChild(buildElevationGraph(270));
 
 	HUD *the_hud = new HUD(_minGainDB, _maxGainDB, rp);
 	_root->addChild(the_hud->getNode());
@@ -333,8 +332,12 @@ osg::Node *SceneVisualizer::buildRadiationModel()
 	osg::Geode *geode = new osg::Geode();
 	osg::Geometry *geom = new osg::Geometry();
 
+	// To print elevation graph in 360º we use two opposite phi angles to build the two halves of the curve
+
 	// Vertex array
 	osg::Vec3Array *vertex_array = new osg::Vec3Array();
+
+	// First half
 	for (int theta_idx = 0; theta_idx < _nTheta; theta_idx++) {
 
 		float power_gain_dB = _rp->get_power_gain(theta_idx, phi_idx);
@@ -350,6 +353,24 @@ osg::Node *SceneVisualizer::buildRadiationModel()
 			;
 		vertex_array->push_back(pos);
 	}
+	// Second half
+	phi_idx = phi_idx + (_nPhi / 2) % _nPhi;
+	for (int theta_idx = _nTheta-1; theta_idx >= 0; theta_idx--) {
+
+		float power_gain_dB = _rp->get_power_gain(theta_idx, phi_idx);
+		float normalized_gain = normalizeGain(power_gain_dB);
+
+		float theta = _rp->get_theta(theta_idx);
+		float phi = _rp->get_phi(phi_idx);
+		theta = osg::DegreesToRadians(theta + THETA_OFFSET) * THETA_FACTOR;
+		phi = osg::DegreesToRadians(phi + PHI_OFFSET) * PHI_FACTOR;
+		osg::Vec3 pos = osg::Vec3(0., normalized_gain, 0.)
+			* osg::Matrix::rotate(theta, osg::X_AXIS)
+			* osg::Matrix::rotate(phi, osg::Z_AXIS)
+			;
+		vertex_array->push_back(pos);
+	}
+
 	geom->setVertexArray(vertex_array);
 
 	// Normal array
