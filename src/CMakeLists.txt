@@ -4,6 +4,12 @@ set(sources
 		main.cpp
 		scenegeometry.h
 		scenegeometry.cpp
+		hud.h
+		hud.cpp
+		utils.h
+		utils.cpp
+		necparser.h
+		necparser.cpp
 	)
 
 set ( LIBS
@@ -13,6 +19,7 @@ set ( LIBS
 		osgViewer
 		osgDB
 		osgGA
+		osgText
 	)
 
 add_executable(${target} ${sources})

@@ -1,0 +1,29 @@
+- Gain pseudocolor table marks
+- 2D representations with angle selection (theta, phi) and scale marks
+
+- Review segment length delta (relative to wavelenght)
+---
+The main electrical consideration is segment length Delta relative to the
+wavelength Lambda. Generally, Delta should be less than about 0.l Lambda at
+the desired frequency. Somewhat longer segments may be acceptable on long
+wires with no abrupt changes while shorter segments, 0.05 Lambda or less,
+may be needed in modeling critical regions of an antenna. The size of the
+segments determines the resolution in solving for the current on the model
+since the current is computed at the center of each segment. Extremely short
+segments, less than about 10-3 Lambda, should also be avoided since the
+similarity of the constant and cosine components of the current expansion
+leads to numerical inaccuracy.
+[...]
+The current expansion used in NEC enforces conditions on the current and
+charge density along wires, at junctions, and at wire ends. For these
+conditions to be applied properly, segments that are electrically connected
+must have coincident end points. If segments intersect other than at their
+ends, the NEC code will not allow current to flow from one segment to the
+other. Segments will be treated as connected if the separation of their ends
+is less than about 10-3 times the length of the shortest segment. When
+possible, however, identical coordinates should be used for connected
+segment ends.
+---
+(from NEC2 Part3, Section II.1)
+(actually I should read the whole Section II to check for potential issues
+with the supplied input data

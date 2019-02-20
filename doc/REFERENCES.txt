@@ -1,0 +1,17 @@
+
+
+Software dependencies
+---------------------
+
+- NEC2++ by Tim Molteno
+  Original version is in available in https://github.com/tmolteno/necpp
+  Forked version modified to compile in Windows 10 with Visual Studio 2017 is available in https://github.com/jtaibo/necpp
+
+- OpenSceneGraph 3.6.3
+
+
+
+NEC Documentation
+-----------------
+
+http://nec2.org/

@@ -1,0 +1,15 @@
+CM Dipolo horizontal NEC2 - sin plano de tierra (free space)
+CM One horizontal wire (tagged #1) split in 25 segments (feeded in the middle segment, #13)
+CM Voltage excitation in the dipole center: 70V (computed from 100 Watt and 50 ohm)
+CM Single frequency at 14.175 MHz
+CM Free space ground condition
+CM Compute Radiation Pattern: 180 theta sampes, 360 phi samples, total gain normalized, 
+CM I1   I2   I3   I4        F1        F2        F3        F4        F5        F6
+CE|  |    |    |    |         |         |         |         |         |         |
+GW  1   25       0.0    -5.165       5.0       0.0     5.165       5.0      0.69
+GE  0
+FR  0    1              14.175       0.0
+GN -1
+EX  0    1   13   00      70.0       0.0
+RP  0  180  360 0500     -90.0       0.0       1.0       1.0
+EN
