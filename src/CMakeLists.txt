@@ -10,6 +10,12 @@ set(sources
 		utils.cpp
 		necparser.h
 		necparser.cpp
+		simulation.h
+		simulation.cpp
+		antenna.h
+		antenna.cpp
+		ant_dipole.h
+		ant_dipole.cpp
 	)
 
 set ( LIBS

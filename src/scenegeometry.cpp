@@ -14,19 +14,28 @@
  *	Constructor
  */
 SceneVisualizer::SceneVisualizer() :
+	_showAntenna(true),
+	_showRadiationPattern(true),
 	_logScale(false)
 {
 	_root = new osg::Group();
 }
+
+void SceneVisualizer::configure(Simulation *simulation)
+{
+	_simulation = simulation;
+	analize(simulation->getNECRadiationPattern());
+	buildScene();
+}
+
 
 /**
  *	Analize NEC2 computations and populate antenna information
  */
 void SceneVisualizer::analize(nec_radiation_pattern* rp)
 {
-	_rp = rp;
-	_nTheta = _rp->get_ntheta();
-	_nPhi = _rp->get_nphi();
+	_nTheta = rp->get_ntheta();
+	_nPhi = rp->get_nphi();
 
 	// Compute dB range, minimum and maximum values
 	_maxGainDB = -999.;
@@ -34,7 +43,7 @@ void SceneVisualizer::analize(nec_radiation_pattern* rp)
 	for (int theta_idx = 0; theta_idx < _nTheta; theta_idx++) {
 		for (int phi_idx = 0; phi_idx < _nPhi; phi_idx++) {
 			float power_gain_dB = rp->get_power_gain(theta_idx, phi_idx);
-			if (power_gain_dB < _minGainDB && power_gain_dB != -999.)
+			if (power_gain_dB < _minGainDB && power_gain_dB >= -999.)
 				_minGainDB = power_gain_dB;
 			if (power_gain_dB > _maxGainDB)
 				_maxGainDB = power_gain_dB;
@@ -57,32 +66,36 @@ void SceneVisualizer::analize(nec_radiation_pattern* rp)
 		}
 	}
 	_gainRangeDB = _maxGainDB - _minGainDB;
+#if 0
+	std::cout << "======================================================" << std::endl;
+	std::cout << " min Gain (dB): " << _minGainDB << std::endl;
+	std::cout << " max Gain (dB): " << _maxGainDB << std::endl;
+	std::cout << " Gain range (dB): " << _gainRangeDB << std::endl;
+	std::cout << "======================================================" << std::endl;
+#endif
 }
 
 /**
  *
  */
-osg::Node * SceneVisualizer::buildScene(c_geometry* geo, nec_radiation_pattern* rp)
+osg::Node * SceneVisualizer::buildScene()
 {
-	_antennaGeometry = geo;
-	analize(rp);
-
 	_root->removeChildren(0, _root->getNumChildren());
 
 //	_root->addChild( osgDB::readNodeFile("cow.osg") );
 	_root->addChild(buildAxes(1.));
 	_antenna = new osg::Switch();
 	_root->addChild(_antenna);
-	_antenna->addChild(buildAntennaModel(geo));
-	_root->addChild(buildGroundGeometry(geo));
+	_antenna->addChild(buildAntennaModel(_simulation->getNECGeometry()), _showAntenna);
+	_root->addChild(buildGroundGeometry());
 	_radiationPattern = new osg::Switch();
 	_root->addChild(_radiationPattern);
-	_radiationPattern->addChild(buildRadiationModel(), false);
+	_radiationPattern->addChild(buildRadiationModel(), _showRadiationPattern);
 	// TO-DO: choose theta and phi values for azimuthal and elevation graphs
 	_root->addChild(buildAzimuthalGraph(90));
 	_root->addChild(buildElevationGraph(90));
 
-	HUD *the_hud = new HUD(_minGainDB, _maxGainDB, rp);
+	HUD *the_hud = new HUD(_minGainDB, _maxGainDB, _simulation->getNECRadiationPattern());
 	_root->addChild(the_hud->getNode());
 
 	return _root;
@@ -128,7 +141,7 @@ osg::Node *SceneVisualizer::buildAxes(float size)
 	return geode;
 }
 
-osg::Node *SceneVisualizer::buildGroundGeometry(c_geometry* geo)
+osg::Node *SceneVisualizer::buildGroundGeometry()
 {
 	osg::Geode *geode = new osg::Geode();
 	osg::Geometry *geom = new osg::Geometry();
@@ -226,11 +239,11 @@ osg::Node *SceneVisualizer::buildRadiationModel()
 	for (int theta_idx = 0; theta_idx < _nTheta; theta_idx++) {
 		for (int phi_idx = 0; phi_idx < _nPhi; phi_idx++) {
 
-			float power_gain_dB = _rp->get_power_gain(theta_idx, phi_idx);
+			float power_gain_dB = _simulation->getNECRadiationPattern()->get_power_gain(theta_idx, phi_idx);
 			float normalized_gain = normalizeGain(power_gain_dB);
 
-			float theta = _rp->get_theta(theta_idx);
-			float phi = _rp->get_phi(phi_idx);
+			float theta = _simulation->getNECRadiationPattern()->get_theta(theta_idx);
+			float phi = _simulation->getNECRadiationPattern()->get_phi(phi_idx);
 			theta = osg::DegreesToRadians(theta + THETA_OFFSET) * THETA_FACTOR;
 			phi = osg::DegreesToRadians(phi + PHI_OFFSET) * PHI_FACTOR;
 			osg::Vec3 pos = osg::Vec3(0., normalized_gain, 0.)
@@ -250,8 +263,13 @@ osg::Node *SceneVisualizer::buildRadiationModel()
 	geom->setColorArray(color_array);
 	for (int theta_idx = 0; theta_idx < _nTheta; theta_idx++) {
 		for (int phi_idx = 0; phi_idx < _nPhi; phi_idx++) {
-			float gain_dB = _rp->get_power_gain(theta_idx, phi_idx);
-			color_array->push_back( pseudoColor( gain_dB, _minGainDB, _maxGainDB) );
+			float gain_dB = _simulation->getNECRadiationPattern()->get_power_gain(theta_idx, phi_idx);
+#if 1
+			color_array->push_back(pseudoColor(gain_dB, _minGainDB, _maxGainDB));
+#else
+			float normalized_gain = normalizeGain(gain_dB);
+			color_array->push_back( pseudoColor(normalized_gain, _minGainDB, _maxGainDB) );
+#endif
 		}
 	}
 	geom->setColorBinding(osg::Geometry::BIND_PER_VERTEX);
@@ -293,11 +311,12 @@ osg::Node *SceneVisualizer::buildRadiationModel()
 	osg::Vec3Array *vertex_array = new osg::Vec3Array();
 	for (int phi_idx = 0; phi_idx < _nPhi; phi_idx++) {
 
-		float power_gain_dB = _rp->get_power_gain(theta_idx, phi_idx);
+		float power_gain_dB = _simulation->getNECRadiationPattern()->get_power_gain(theta_idx, phi_idx);
+		power_gain_dB = osg::maximum(power_gain_dB, _minGainDB);
 		float normalized_gain = normalizeGain(power_gain_dB);
 
-		float theta = _rp->get_theta(theta_idx);
-		float phi = _rp->get_phi(phi_idx);
+		float theta = _simulation->getNECRadiationPattern()->get_theta(theta_idx);
+		float phi = _simulation->getNECRadiationPattern()->get_phi(phi_idx);
 		theta = osg::DegreesToRadians(theta + THETA_OFFSET) * THETA_FACTOR;
 		phi = osg::DegreesToRadians(phi + PHI_OFFSET) * PHI_FACTOR;
 		osg::Vec3 pos = osg::Vec3(0., normalized_gain, 0.)
@@ -340,11 +359,11 @@ osg::Node *SceneVisualizer::buildRadiationModel()
 	// First half
 	for (int theta_idx = 0; theta_idx < _nTheta; theta_idx++) {
 
-		float power_gain_dB = _rp->get_power_gain(theta_idx, phi_idx);
+		float power_gain_dB = _simulation->getNECRadiationPattern()->get_power_gain(theta_idx, phi_idx);
 		float normalized_gain = normalizeGain(power_gain_dB);
 
-		float theta = _rp->get_theta(theta_idx);
-		float phi = _rp->get_phi(phi_idx);
+		float theta = _simulation->getNECRadiationPattern()->get_theta(theta_idx);
+		float phi = _simulation->getNECRadiationPattern()->get_phi(phi_idx);
 		theta = osg::DegreesToRadians(theta + THETA_OFFSET) * THETA_FACTOR;
 		phi = osg::DegreesToRadians(phi + PHI_OFFSET) * PHI_FACTOR;
 		osg::Vec3 pos = osg::Vec3(0., normalized_gain, 0.)
@@ -357,11 +376,11 @@ osg::Node *SceneVisualizer::buildRadiationModel()
 	phi_idx = phi_idx + (_nPhi / 2) % _nPhi;
 	for (int theta_idx = _nTheta-1; theta_idx >= 0; theta_idx--) {
 
-		float power_gain_dB = _rp->get_power_gain(theta_idx, phi_idx);
+		float power_gain_dB = _simulation->getNECRadiationPattern()->get_power_gain(theta_idx, phi_idx);
 		float normalized_gain = normalizeGain(power_gain_dB);
 
-		float theta = _rp->get_theta(theta_idx);
-		float phi = _rp->get_phi(phi_idx);
+		float theta = _simulation->getNECRadiationPattern()->get_theta(theta_idx);
+		float phi = _simulation->getNECRadiationPattern()->get_phi(phi_idx);
 		theta = osg::DegreesToRadians(theta + THETA_OFFSET) * THETA_FACTOR;
 		phi = osg::DegreesToRadians(phi + PHI_OFFSET) * PHI_FACTOR;
 		osg::Vec3 pos = osg::Vec3(0., normalized_gain, 0.)
@@ -403,44 +422,53 @@ osg::Node *buildHistogramGraph(nec_radiation_pattern* rp)
  */
 float SceneVisualizer::normalizeGain(float dB)
 {
-	if ( _logScale)
+	if (_logScale) {
 		return (dB - _minGainDB) / _gainRangeDB;
-	else
+	}
+	else {
 		return decibelsToPower(dB);
+	}
 }
 
 
 /**
  *
  */
-bool SceneVisualizer::handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter&)
+bool SceneVisualizer::handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa)
 {
+	bool processed = false;
 	switch (ea.getEventType())
 	{
 	case(osgGA::GUIEventAdapter::KEYDOWN):
-	{
-		switch (ea.getKey()) {
-		case 100:	// D -> switch linear/logarithmic scale
-			_logScale = !_logScale;
-			std::cout << "Setting log scale to " << _logScale << std::endl;
-			buildScene(_antennaGeometry, _rp);
-			break;
-		case 97:	// A -> switch antenna geometry visibility
-			_antenna->setValue(0, ! _antenna->getValue(0));
-			break;
-		case 114:	// R -> switch radiation pattern visibility
-			_radiationPattern->setValue(0, !_radiationPattern->getValue(0));
-			break;
-		default:
-			std::cout << "Key: " << ea.getKey() << std::endl;
-			return false;
+		{
+			processed = true;
+			switch (ea.getKey()) {
+			case 100:	// D -> switch linear/logarithmic scale
+				_logScale = !_logScale;
+				std::cout << "Setting log scale to " << _logScale << std::endl;
+				buildScene();
+				break;
+			case 97:	// A -> switch antenna geometry visibility
+				_showAntenna = !_showAntenna;
+				_antenna->setValue(0, _showAntenna);
+				break;
+			case 114:	// R -> switch radiation pattern visibility
+				_showRadiationPattern = !_showRadiationPattern;
+				_radiationPattern->setValue(0, _showRadiationPattern);
+				break;
+			default:
+				std::cout << "Key: " << ea.getKey() << std::endl;
+				processed = false;
+			}
 		}
-		return true;
-	}
-
+		break;
 	default:
-		return false;
+		break;
 	}
+	if (!processed) {
+		processed = _simulation->handle(ea, aa);
+	}
+	return processed;
 }
 
 /**

@@ -1,12 +1,12 @@
 #ifndef _SCENEGEOMETRY_H_
 #define _SCENEGEOMETRY_H_
 
+#include "simulation.h"
+
 #include <osg/Node>
 #include <osg/Switch>
 #include <osgGA/GUIEventHandler>
 
-#include <nec2pp/c_geometry.h>
-#include <nec2pp/nec_radiation_pattern.h>
 
 /**
  *
@@ -16,14 +16,22 @@ class SceneVisualizer : public osgGA::GUIEventHandler {
 public:
 	SceneVisualizer();
 
+	void configure(Simulation *simulation);
+
+	inline osg::Node *getScene() { return _root;  }
+
+	virtual bool handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa);
+	//	virtual void accept(osgGA::GUIEventHandlerVisitor& v);
+
+private:
+
 	/// Analize NEC2 computations and populate antenna information
 	void analize(nec_radiation_pattern* rp);
 
-	osg::Node *buildScene(c_geometry* geo, nec_radiation_pattern* rp);
-
+	osg::Node *buildScene();
 	osg::Node *buildAxes(float size=1.0);
 	osg::Node *buildAntennaModel(c_geometry* geo);
-	osg::Node *buildGroundGeometry(c_geometry* geo);
+	osg::Node *buildGroundGeometry();
 	osg::Node *buildRadiationModel();
 
 	/// Azimuthal (for any theta)
@@ -38,12 +46,9 @@ public:
 	/// Normalize gain 
 	float normalizeGain(float dB);
 
-	virtual bool handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter&);
-//	virtual void accept(osgGA::GUIEventHandlerVisitor& v);
 
 private:
-	c_geometry *_antennaGeometry;
-	nec_radiation_pattern* _rp;
+	Simulation *_simulation;
 
 	osg::ref_ptr<osg::Group> _root;
 
@@ -57,6 +62,8 @@ private:
 	float _minGainDB;	///< Min gain in dB
 	float _maxGainDB;	///< Max gain in dB
 
+	bool _showAntenna;
+	bool _showRadiationPattern;
 	bool _logScale;	///< Decibels (logarithmic) or power (linear)
 };
 

@@ -8,4 +8,4 @@ REM set INPUT_FILE=samples/example_nec2pp.txt
 REM set INPUT_FILE=samples/example_nec2pp.txt
 set INPUT_FILE=samples/test_dipolo_1.txt
 
-ant3d %INPUT_FILE%
+ant3d -nec2_file %INPUT_FILE%

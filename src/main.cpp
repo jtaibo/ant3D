@@ -1,7 +1,6 @@
 #include "scenegeometry.h"
-#include "necparser.h"
-
-#include <nec2pp/libnecpp.h>
+#include "simulation.h"
+#include "ant_dipole.h"
 
 #include <osgViewer/Viewer>
 #include <osgViewer/ViewerEventHandlers>
@@ -44,29 +43,59 @@ int main(int argc, char *argv[])
 	std::cout << "Antenna 3D visualizer" << std::endl;
 	std::cout << "V 0.1 - 2019 EA1JBP" << std::endl;
 
-#if 1
-	// Load antenna model from a NEC input file
+	typedef enum {
+		FILE_NEC2,
+		INTERACTIVE_DIPOLE
+	} OperationMode;
 
-	nec_context *nec = NULL;
-	if (argc > 1) {
-		char *input_filename = argv[1];
-		FILE *input = fopen(input_filename, "r");
-		if (!input) {
-			std::cerr << "ERROR opening input file " << input_filename << std::endl;
-			exit(1);
+	OperationMode mode = FILE_NEC2;
+	const char *cfg_file = NULL;
+
+	for (int i = 1; i < argc; ) {
+		char *param = argv[i];
+		std::cout << "param #" << i << " : " << param << std::endl;
+		if ( !strncmp(param, "-nec2_file", 10)) {
+			if (++i < argc) {
+				mode = FILE_NEC2;
+				cfg_file = argv[i++];
+			}
+			else {
+				std::cerr << "ERROR. No file cfg supplied" << std::endl;
+				return -1;
+			}
 		}
-		nec = create_nec_context_from_file(input_filename);
-		fclose(input);
-	}
-	else {
-		syntax(argv[0]);
-		exit(1);
+		else if (!strncmp(param, "-dipole", 7)) {
+			mode = INTERACTIVE_DIPOLE;
+			if (++i < argc && argv[i][0] != '-') {
+				cfg_file = argv[i++];
+			}
+		}
+		else if (param[0] != '-') {
+			// config file
+			cfg_file = argv[i++];
+		}
+		else {
+			std::cerr << "ERROR. Unknown parameter: " << param << std::endl;
+			return -1;
+		}
 	}
 
-	nec_radiation_pattern* rp = nec->get_radiation_pattern(0);
-	c_geometry* geo = nec->get_geometry();
+	Simulation simulation;
+	switch (mode) {
+	case FILE_NEC2:
+		simulation.loadNEC2File(cfg_file);
+		break;
+	case INTERACTIVE_DIPOLE:
+		// to-do
+		simulation.configure(new AntDipole());
+		break;
+	default:
+		std::cerr << "ERROR. Unknown mode: " << mode << std::endl;
+		return -1;
+		break;
+	}
 
-#else
+#if 0
 	nec_context nec;
 	nec.initialize();
 
@@ -113,14 +142,12 @@ int main(int argc, char *argv[])
 	viewer.addEventHandler(new osgViewer::StatsHandler);
 
 	SceneVisualizer *sv = new SceneVisualizer();
+	sv->configure(&simulation);
 	viewer.addEventHandler(sv);
-	viewer.setSceneData(sv->buildScene(geo, rp) );
+	viewer.setSceneData(sv->getScene());
 
 	viewer.realize();
-
 	viewer.run();
-
-//	nec_delete(nec);
 
 	exit(0);
 }

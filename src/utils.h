@@ -3,13 +3,14 @@
 
 #include <osg/Vec4>
 
+
 /// Convert value in range to pseudocolor
 osg::Vec4 pseudoColor(float val, float min, float max);
 
 /// Convert decibels to power value
 inline float decibelsToPower(float dB)
 {
-	return pow(10., (dB / 10.));
+	return osg::maximum(0., pow(10., (dB / 10.)));
 }
 
 /// Convert power value to decibels
