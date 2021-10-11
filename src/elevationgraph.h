@@ -1,30 +1,30 @@
-#ifndef _AZIMUTHALGRAPH_H_
-#define _AZIMUTHALGRAPH_H_
+#ifndef _ELEVATIONGRAPH_H_
+#define _ELEVATIONGRAPH_H_
 
 #include "simulation.h"
 
 #include <osg/Group>
 
-class AzimuthalGraph {
+class ElevationGraph {
 public:
 
 	/// Constructor
-	AzimuthalGraph();
+	ElevationGraph();
 
 	inline osg::Node *getNode() { return _root;  }
 
 	/// Plot the NEC2 simulation result
-	void plotSimulationResult(Simulation &sim, int theta_idx);
+	void plotSimulationResult(Simulation &sim, int phi_idx, int theta_idx);
 
 private:
 
 	void buildFrame();
 
-	float _elevationAngle;	///< Elevation angle that the azimuthal graph corresponds to
+	float _azimuthAngle;	///< Azimuth angle that the elevation graph corresponds to
 
 	osg::ref_ptr<osg::Geode> _frame;
 	osg::ref_ptr<osg::Geode> _plot;
 	osg::ref_ptr<osg::Group> _root;
 };
 
-#endif // _AZIMUTHALGRAPH_H_
+#endif // _ELEVATIONGRAPH_H_

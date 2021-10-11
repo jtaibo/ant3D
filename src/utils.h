@@ -19,4 +19,13 @@ inline float powerToDecibels(float P)
 	return 10. * log10(P);
 }
 
+/// Skin depth or penetration depth in soil
+inline float skinDepth(float freq, float conductivity, float permeability, float permittivity);
+
+/// Wavelength in free space
+inline float waveLengthInFreeSpace(float freq);
+
+/// Wavelength in soil
+inline float waveLengthInSoil(float freq, float relativePermittivity, float conductivity);
+
 #endif // _UTILS_H_

@@ -34,8 +34,14 @@ void SceneVisualizer::configure(Simulation *simulation)
  */
 void SceneVisualizer::analize(nec_radiation_pattern* rp)
 {
+	if (!rp)
+		return;
+
 	_nTheta = rp->get_ntheta();
 	_nPhi = rp->get_nphi();
+
+	_selectedThetaIdx = 0;
+	_selectedPhiIdx = 0;
 
 	// Compute dB range, minimum and maximum values
 	_maxGainDB = -999.;
@@ -92,11 +98,14 @@ osg::Node * SceneVisualizer::buildScene()
 	_root->addChild(_radiationPattern);
 	_radiationPattern->addChild(buildRadiationModel(), _showRadiationPattern);
 	// TO-DO: choose theta and phi values for azimuthal and elevation graphs
-	_root->addChild(buildAzimuthalGraph(90));
-	_root->addChild(buildElevationGraph(90));
+//	_root->addChild(buildAzimuthalGraph(_selectedThetaIdx));
+//	_root->addChild(buildElevationGraph(_selectedPhiIdx));
 
-	HUD *the_hud = new HUD(_minGainDB, _maxGainDB, _simulation->getNECRadiationPattern());
-	_root->addChild(the_hud->getNode());
+	_theHUD = new HUD(_minGainDB, _maxGainDB, _simulation);
+	_root->addChild(_theHUD->getNode());
+
+	_theHUD->getNode()->asGroup()->addChild(_azimuthalGraph.getNode());
+	_theHUD->getNode()->asGroup()->addChild(_elevationGraph.getNode());
 
 	return _root;
 }
@@ -174,7 +183,7 @@ osg::Node *SceneVisualizer::buildGroundGeometry()
 	// Normal array
 	// Color array
 	osg::Vec4Array *color_array = new osg::Vec4Array();
-	color_array->push_back(osg::Vec4(.5, .5, 0., 1.));
+	color_array->push_back(osg::Vec4(.2, .2, 0., 1.));
 	geom->setColorArray(color_array);
 	geom->setColorBinding(osg::Geometry::BIND_OVERALL);
 
@@ -192,6 +201,10 @@ osg::Node *SceneVisualizer::buildGroundGeometry()
  */
 osg::Node *SceneVisualizer::buildAntennaModel(c_geometry* geo)
 {
+	if (_simulation->getAntenna()) {
+		return _simulation->getAntennaGeometry();
+	}
+
 	osg::Geode *geode = new osg::Geode();
 	osg::Geometry *geom = new osg::Geometry();
 
@@ -230,6 +243,10 @@ osg::Node *SceneVisualizer::buildAntennaModel(c_geometry* geo)
  */
 osg::Node *SceneVisualizer::buildRadiationModel()
 {
+	if ( !_simulation->getNECRadiationPattern()) {
+		return NULL;
+	}
+
 	osg::Geode *geode = new osg::Geode();
 	osg::Geometry *geom = new osg::Geometry();
 
@@ -289,10 +306,11 @@ osg::Node *SceneVisualizer::buildRadiationModel()
 				idx_array->push_back(idx + 1);
 				idx_array->push_back(idx + 1 + _nPhi);
 			}
-			idx_array->push_back(idx + _nTheta);
+			idx_array->push_back(idx + _nPhi);
 		}
 	}
 	osg::DrawElements *pset = new osg::DrawElementsUInt(GL_QUADS, idx_array->size(), (const GLuint *)idx_array->getDataPointer());
+
 	geom->addPrimitiveSet(pset);
 
 	geode->addChild(geom);
@@ -304,6 +322,12 @@ osg::Node *SceneVisualizer::buildRadiationModel()
  */
  osg::Node *SceneVisualizer::buildAzimuthalGraph(int theta_idx)
 {
+	if (!_simulation->getNECRadiationPattern()) {
+		return NULL;
+	}
+
+	_azimuthalGraph.plotSimulationResult(*_simulation, _selectedPhiIdx, theta_idx);
+
 	osg::Geode *geode = new osg::Geode();
 	osg::Geometry *geom = new osg::Geometry();
 
@@ -348,6 +372,12 @@ osg::Node *SceneVisualizer::buildRadiationModel()
  */
  osg::Node *SceneVisualizer::buildElevationGraph(int phi_idx)
 {
+	if (!_simulation->getNECRadiationPattern()) {
+		return NULL;
+	}
+
+	_elevationGraph.plotSimulationResult(*_simulation, phi_idx, _selectedThetaIdx);
+
 	osg::Geode *geode = new osg::Geode();
 	osg::Geometry *geom = new osg::Geometry();
 
@@ -456,6 +486,31 @@ bool SceneVisualizer::handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionA
 				_showRadiationPattern = !_showRadiationPattern;
 				_radiationPattern->setValue(0, _showRadiationPattern);
 				break;
+
+			case 65362:	// key up
+				_selectedThetaIdx = std::min(_selectedThetaIdx + 1, _nTheta);
+				_azimuthalGraph.plotSimulationResult(*_simulation, _selectedPhiIdx, _selectedThetaIdx);
+				_elevationGraph.plotSimulationResult(*_simulation, _selectedPhiIdx, _selectedThetaIdx);
+				break;
+
+			case 65364:	// key down
+				_selectedThetaIdx = std::max(_selectedThetaIdx - 1, 0);
+				_azimuthalGraph.plotSimulationResult(*_simulation, _selectedPhiIdx, _selectedThetaIdx);
+				_elevationGraph.plotSimulationResult(*_simulation, _selectedPhiIdx, _selectedThetaIdx);
+				break;
+
+			case 65361:	// key left
+				_selectedPhiIdx = std::max(_selectedPhiIdx - 1, 0);
+				_azimuthalGraph.plotSimulationResult(*_simulation, _selectedPhiIdx, _selectedThetaIdx);
+				_elevationGraph.plotSimulationResult(*_simulation, _selectedPhiIdx, _selectedThetaIdx);
+				break;
+
+			case 65363:	// key right
+				_selectedPhiIdx = std::min(_selectedPhiIdx + 1, _nPhi);
+				_azimuthalGraph.plotSimulationResult(*_simulation, _selectedPhiIdx, _selectedThetaIdx);
+				_elevationGraph.plotSimulationResult(*_simulation, _selectedPhiIdx, _selectedThetaIdx);
+				break;
+
 			default:
 				std::cout << "Key: " << ea.getKey() << std::endl;
 				processed = false;

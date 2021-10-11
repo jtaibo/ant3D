@@ -9,7 +9,7 @@
 
 #include <sstream>
 
-std::string theFont("fonts/FreeSans.ttf");
+const std::string theFont("fonts/FreeSans.ttf");
 #define PLOT_COLOR osg::Vec4(1., 0., 0., 1.)
 #define PLOT_LINE_WIDTH 3.
 
@@ -31,6 +31,7 @@ AzimuthalGraph::AzimuthalGraph()
 		trans->addChild(_plot);
 		_root->addChild(trans);
 	}
+	if ( false )
 	{
 		osg::MatrixTransform *trans = new osg::MatrixTransform(osg::Matrix::translate(1920 - 250, 700, 0.));
 		trans->addChild(_frame);
@@ -42,7 +43,7 @@ AzimuthalGraph::AzimuthalGraph()
 
 
 /// Plot the NEC2 simulation result
-void AzimuthalGraph::plotSimulationResult(Simulation &sim, int theta_idx)
+void AzimuthalGraph::plotSimulationResult(Simulation &sim, int phi_idx, int theta_idx)
 {
 	nec_radiation_pattern *rp = sim.getNECRadiationPattern();
 
@@ -58,6 +59,7 @@ void AzimuthalGraph::plotSimulationResult(Simulation &sim, int theta_idx)
 	float norm_f = rp->get_normalization_factor();
 	for (int i = 0; i < rp->get_nphi(); i++) {
 		float radiation_db = rp->get_power_gain(theta_idx, i) * outer_radius / norm_f;
+		radiation_db = std::max(radiation_db, 0.f);
 		osg::Vec3 v = osg::Vec3(0., radiation_db, 0.) * osg::Matrix::rotate(-osg::DegreesToRadians( rp->get_phi_start() + (float)i * rp->get_delta_phi()), osg::Z_AXIS);
 		vertex_array->push_back(v);
 	}
@@ -98,6 +100,25 @@ void AzimuthalGraph::plotSimulationResult(Simulation &sim, int theta_idx)
 #endif
 
 		text->setText(info.str());
+	}
+	{
+		osg::Geometry *geom = new osg::Geometry();
+		_plot->addDrawable(geom);
+		// Vertex array
+		osg::Vec3Array *vertex_array = new osg::Vec3Array();
+		geom->setVertexArray(vertex_array);
+		vertex_array->push_back(osg::Vec3(-outer_radius * 1.1, 0., 0.) * osg::Matrix::rotate(osg::DegreesToRadians(rp->get_phi(phi_idx)), osg::Z_AXIS));
+		vertex_array->push_back(osg::Vec3(outer_radius * 1.1, 0., 0.) * osg::Matrix::rotate(osg::DegreesToRadians(rp->get_phi(phi_idx)), osg::Z_AXIS));
+
+		osg::Vec4Array *colors = new osg::Vec4Array();
+		colors->push_back(osg::Vec4(1., 1., 1., 1.));
+		geom->setColorArray(colors);
+		geom->setColorBinding(osg::Geometry::BIND_OVERALL);
+
+		//		osg::StateSet *sset = geom->getOrCreateStateSet();
+		//		sset->setAttribute(new osg::LineWidth(PLOT_LINE_WIDTH));
+
+		geom->addPrimitiveSet(new osg::DrawArrays(osg::DrawArrays::LINES, 0, vertex_array->size()));
 	}
 }
 

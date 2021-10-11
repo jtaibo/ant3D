@@ -7,6 +7,9 @@
 #include <osgGA/StateSetManipulator>
 
 
+#define BACKGROUND_COLOR osg::Vec4(.5, .5, .5, 1.)
+
+
 void printNECInfo(nec_radiation_pattern *rp)
 {
 	int nth = rp->get_ntheta();
@@ -45,10 +48,11 @@ int main(int argc, char *argv[])
 
 	typedef enum {
 		FILE_NEC2,
-		INTERACTIVE_DIPOLE
+		INTERACTIVE_DIPOLE,
+		DEFAULT_MODE=INTERACTIVE_DIPOLE
 	} OperationMode;
 
-	OperationMode mode = FILE_NEC2;
+	OperationMode mode = DEFAULT_MODE;
 	const char *cfg_file = NULL;
 
 	for (int i = 1; i < argc; ) {
@@ -145,6 +149,8 @@ int main(int argc, char *argv[])
 	sv->configure(&simulation);
 	viewer.addEventHandler(sv);
 	viewer.setSceneData(sv->getScene());
+	viewer.getCamera()->setClearColor(BACKGROUND_COLOR);
+	simulation.setSceneVisualizer(sv);
 
 	viewer.realize();
 	viewer.run();

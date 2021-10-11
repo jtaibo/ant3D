@@ -6,6 +6,10 @@ set(sources
 		scenegeometry.cpp
 		hud.h
 		hud.cpp
+		azimuthalgraph.h
+		azimuthalgraph.cpp
+		elevationgraph.h
+		elevationgraph.cpp
 		utils.h
 		utils.cpp
 		necparser.h

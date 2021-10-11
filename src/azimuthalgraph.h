@@ -14,7 +14,7 @@ public:
 	inline osg::Node *getNode() { return _root;  }
 
 	/// Plot the NEC2 simulation result
-	void plotSimulationResult(Simulation &sim, int theta_idx);
+	void plotSimulationResult(Simulation &sim, int phi_idx, int theta_idx);
 
 private:
 

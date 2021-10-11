@@ -3,6 +3,8 @@
 
 #include "antenna.h"
 
+#include <osg/Geode>
+
 /**
  *	Center fed balanced dipole
  *
@@ -19,6 +21,8 @@ public:
 	/// Event management (received from SceneGeometry through Simulation class)
 	virtual bool handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa);
 
+	virtual osg::Node *getScene();
+
 	// to-do: Compute antenna geometry from target MHz, wire type/radius and available space
 	// ...
 
@@ -30,8 +34,14 @@ private:
 	float _wireRadius;	///< Wire radius (in meters)
 	int _wireMaterial;	///< Material definition???
 
+	/// Get textual information about the antenna (ready to be printed in the HUD)
+	virtual std::string getTextInfo();
 	// TO-DO: HUD connection
-	// TO-DO: 3D build ?
+
+	void buildGeometry(osg::Vec3Array *vertices);
+	osg::ref_ptr<osg::Geode> _root;
+
+	void checkGeometry(osg::Vec3Array *vertices);
 
 };
 

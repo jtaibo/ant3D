@@ -10,7 +10,8 @@
 
 std::string timesFont("fonts/FreeSans.ttf");
 
-HUD::HUD(float min_dB, float max_dB, nec_radiation_pattern* rp)
+HUD::HUD(float min_dB, float max_dB, Simulation* sim) :
+	_simulation(sim)
 {
 	// create a camera to set up the projection and model view matrices, and the subgraph to draw in the HUD
 	osg::Camera* camera = new osg::Camera;
@@ -31,14 +32,13 @@ HUD::HUD(float min_dB, float max_dB, nec_radiation_pattern* rp)
 	// we don't want the camera to grab event focus from the viewers main camera(s).
 	camera->setAllowEventFocus(false);
 
+	// turn lighting off for the text and disable depth test? to ensure it's always ontop.
+	camera->getOrCreateStateSet()->setMode(GL_LIGHTING, osg::StateAttribute::OFF);
+
 	// add to this camera a subgraph to render
 	{
 
 		osg::Geode* geode = new osg::Geode();
-
-		// turn lighting off for the text and disable depth test to ensure it's always ontop.
-		osg::StateSet* stateset = geode->getOrCreateStateSet();
-		stateset->setMode(GL_LIGHTING, osg::StateAttribute::OFF);
 
 		{
 			osg::Vec3 position(960.0f, 1000.0f, 0.0f);
@@ -55,7 +55,7 @@ HUD::HUD(float min_dB, float max_dB, nec_radiation_pattern* rp)
 
 		camera->addChild(geode);
 
-		camera->addChild(buildDecibelScale(min_dB, max_dB, rp));
+		camera->addChild(buildDecibelScale(min_dB, max_dB, _simulation->getNECRadiationPattern()));
 
 	}
 	_root = camera;
@@ -63,14 +63,17 @@ HUD::HUD(float min_dB, float max_dB, nec_radiation_pattern* rp)
 
 osg::Node *HUD::buildDecibelScale(float min_dB, float max_dB, nec_radiation_pattern* rp)
 {
+	if (!rp)
+		return NULL;
+
 	osg::Geode *geode = new osg::Geode();
 	{
 		{
-			osg::Vec3 position(1800.0f, 950.0f, 0.0f);
+			osg::Vec3 position(300.0f, 1000.0f, 0.0f);
 			osgText::Text* text = new  osgText::Text;
 			geode->addDrawable(text);
 
-			text->setAlignment(osgText::TextBase::CENTER_BASE_LINE);
+			text->setAlignment(osgText::TextBase::LEFT_BASE_LINE);
 			text->setFont(timesFont);
 			text->setPosition(position);
 			text->setCharacterSize(20.);
@@ -82,6 +85,11 @@ osg::Node *HUD::buildDecibelScale(float min_dB, float max_dB, nec_radiation_patt
 			txtstr << theta << ": " << rp->get_theta_angles().size() << " [" << rp->get_theta_start() << ", " << rp->get_theta_start() + rp->get_delta_theta() * rp->get_theta_angles().size() << "]\n"
 				<< phi << ": " << rp->get_phi_angles().size() << " [" << rp->get_phi_start() << ", " << rp->get_phi_start() + rp->get_delta_phi() * rp->get_phi_angles().size() << "]\n"
 				;
+
+			if (_simulation) {
+				txtstr << _simulation->getTextInfo().c_str() << std::endl;
+			}
+
 			text->setText( txtstr.str().c_str() );
 		}
 

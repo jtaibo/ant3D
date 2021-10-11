@@ -2,6 +2,9 @@
 #define _SCENEGEOMETRY_H_
 
 #include "simulation.h"
+#include "hud.h"
+#include "azimuthalgraph.h"
+#include "elevationgraph.h"
 
 #include <osg/Node>
 #include <osg/Switch>
@@ -49,14 +52,18 @@ private:
 
 private:
 	Simulation *_simulation;
+	HUD *_theHUD;
 
 	osg::ref_ptr<osg::Group> _root;
 
 	osg::ref_ptr<osg::Switch> _antenna;
 	osg::ref_ptr<osg::Switch> _radiationPattern;
 
-	int _nTheta;
-	int _nPhi;
+	int _nTheta;	///< Number of theta (elevation) samples in the simulation
+	int _nPhi;		///< Number of phi (azimuth) angles in the simulation
+
+	int _selectedThetaIdx;	///< Elevation angle selection(index)
+	int _selectedPhiIdx;	///< Azimuth angle selection (index)
 
 	float _gainRangeDB;	///< Gain range in dB
 	float _minGainDB;	///< Min gain in dB
@@ -65,6 +72,9 @@ private:
 	bool _showAntenna;
 	bool _showRadiationPattern;
 	bool _logScale;	///< Decibels (logarithmic) or power (linear)
+
+	AzimuthalGraph _azimuthalGraph;
+	ElevationGraph _elevationGraph;
 };
 
 #endif // _SCENEGEOMETRY_H_
